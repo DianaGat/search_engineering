@@ -79,10 +79,7 @@ mappings = {
 "weight": "weight/text()",
 "shippingWeight": "shippingWeight/text()",
 "width": "width/text()",
-"features": "features/*/text()"  # Note the match all here to get the subfields
-
-}
-'''
+"features": "features/*/text()",  # Note the match all here to get the subfields
 "startDate": "startDate/text()",
 "active": "active/text()",
 "regularPrice": "regularPrice/text()",
@@ -136,7 +133,7 @@ mappings = {
 "width": "width/text()",
 "features": "features/*/text()"  # Note the match all here to get the subfields
 
-'''
+}
 
 def get_opensearch(the_host="localhost"):
     host = the_host
@@ -175,7 +172,6 @@ def index_file(file, index_name, host="localhost", max_docs=2000000, batch_size=
         doc = {}
         for name, xpath in mappings.items():
             doc[name] = child.xpath(xpath)
-        # print(doc)
         if 'productId' not in doc or len(doc['productId']) == 0:
             continue
         docs.append({'_index': index_name, '_id': doc['sku'][0], '_source': doc})
@@ -215,6 +211,7 @@ def main(source_dir: str, file_glob: str, index_name: str, workers: int, host: s
     client = get_opensearch(host)
 
     #TODO: set the refresh interval
+    client.indices.put_settings(index=index_name, body={"index": {"refresh_interval": refresh_interval}})
     logger.debug(client.indices.get_settings(index=index_name))
     start = perf_counter()
     time_indexing = 0
@@ -228,6 +225,7 @@ def main(source_dir: str, file_glob: str, index_name: str, workers: int, host: s
     finish = perf_counter()
     logger.info(f'Done. {docs_indexed} were indexed in {(finish - start)/60} minutes.  Total accumulated time spent in `bulk` indexing: {time_indexing/60} minutes')
     # TODO set refresh interval back to 5s
+    client.indices.put_settings(index=index_name, body={"index": {"refresh_interval": "5s"}})
     logger.debug(client.indices.get_settings(index=index_name))
 
 if __name__ == "__main__":
