@@ -43,7 +43,7 @@ def get_opensearch(the_host="localhost"):
 
 
 # Hardcoded query here.  Better to use search templates or other query config.
-def create_query(user_query, filters=None, sort="_score", sortDir="desc", size=10, source=None):
+def create_query(user_query, filters=[], sort="_score", sortDir="desc", size=10, source=None):
     query_obj = {
         'size': size,
         "sort": [
@@ -205,6 +205,7 @@ def create_query(user_query, filters=None, sort="_score", sortDir="desc", size=1
 
 def search(client, user_query, index="bbuy_products"):
     query_obj = create_query(user_query)
+    #print(query_obj)
     logging.info(query_obj)
     start = perf_counter()
     response = client.search(query_obj, index=index)
@@ -226,6 +227,7 @@ def query_opensearch(worker_num, query_file: str, host: str, index_name: str, ma
     #logger.info(f'query len: {len(queries)}')
     client = get_opensearch(host)
     start = perf_counter()
+    failed = 0
     i = 0
     modulo = 1000
     logger.info(f"WN: {worker_num}: Running queries, checking in every {modulo} queries:")
@@ -240,6 +242,7 @@ def query_opensearch(worker_num, query_file: str, host: str, index_name: str, ma
                     logger.info(f'WN: {worker_num}: Aggs: {aggregations}')
         except:
             logger.warn(f'WN: {worker_num}: Failed to process query: {query}')
+            failed += 1
         i+= 1
         if stop_event.is_set():
             logger.info(f"WN: {worker_num}: Stopped early.")
@@ -248,6 +251,7 @@ def query_opensearch(worker_num, query_file: str, host: str, index_name: str, ma
 
     end = perf_counter()
     logger.info(f"WN: {worker_num}: Finished running {len(queries)} queries in {(end - start)/60} minutes")
+    logger.info(f"WN: Failed to process {failed} queries")
     return (end-start)
 
 
